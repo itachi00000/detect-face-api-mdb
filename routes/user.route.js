@@ -1,33 +1,45 @@
 const router = require('express').Router();
-
-// controllers
-// // for auth and user
-// const {
-//   requireSignin,
-//   isAdmin,
-//   isAuth
-// } = require('../controllers/auth.control');
+// const {asyncWrap}= require('../utils/async-wrap.utils');
 
 const {
+  // user crud
   userLists,
-  readUser,
-  createUser,
-  loginUser
+  getUser,
+  // auth
+  register,
+  signin,
+  logout,
+  userById,
+  requireSignin
 } = require('../controllers/user.ctrl');
 
 // GET
-router.get('/', userLists);
-router.get('/:userId', readUser);
+router.get('/hi', requireSignin, userLists);
 
-// POST
-router.post('/register', createUser);
+router.get('/profile/:userId', requireSignin, getUser);
 
-// signin w/ auth, session
+router.post('/profile/:userId', requireSignin, (req, res, next) => {
+  console.log('update user');
+});
+
+router.post('/imageurl', requireSignin, (req, res, next) => {
+  console.log('image url');
+});
+
+router.put('/image', requireSignin, (req, res, next) => {
+  console.log('image');
+});
+
+// login w/ auth, session
 // TODO: how to auto login, session type
-router.post('/signin', loginUser);
+
+// AUTH
+router.post('/register', register);
+router.post('/signin', signin);
+router.get('/logout', requireSignin, logout);
 
 // TODO?: is this the 'option'??
-// router.param('userId', userById);
+router.param('userId', userById);
 
 // mount
 module.exports = router;
