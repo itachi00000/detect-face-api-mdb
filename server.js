@@ -17,6 +17,7 @@ connectMDB().catch((err) => console.error(err.stack()));
 const app = express();
 
 // import routes
+const usersRoute = require('./routes/user.route');
 
 // setting vars, options, env
 const PORT = parseInt(process.env.PORT || 3000, 10);
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // routes
+app.use('/', usersRoute);
 
 // url catch - below last routes
 app.use('*', (req, res, next) => {
