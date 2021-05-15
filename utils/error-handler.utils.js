@@ -38,7 +38,13 @@ const getErrorMessage = (err) => {
 
 const errorHandler = (error, req, res, next) => {
   const errorStatusCode = error.statusCode || 500;
-  console.error('* * * -MyErrorStack-:', error.stack);
+  const errorReason = error.reason && error.reason.toString();
+
+  if (error.reason) {
+    console.error('| ==-- Error-Reason --== |:', errorReason);
+  }
+
+  console.error('| ==--- MyErrorStack ---== |:', error.stack);
 
   // sent to default express errorHandler???
   if (res.headersSent) {
@@ -47,11 +53,18 @@ const errorHandler = (error, req, res, next) => {
   }
 
   // jwt-express's error-handling
-  // if (error.name === 'UnauthorizedError') {
-  //   return res
-  //     .status(401)
-  //     .json({ error: 'No authorization token was found...' });
-  // }
+  if (error.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      error: `${error.name} : ${error.message}`
+    });
+  }
+
+  // casterror
+  // not useful
+  if (error.name === 'CastError') {
+    const { value, path } = error;
+    console.log(`${path}:${value} is not Found`);
+  }
 
   // NotFound Error
   if (errorStatusCode === 301) {
@@ -66,7 +79,9 @@ const errorHandler = (error, req, res, next) => {
   }
 
   // general error
-  return res.status(errorStatusCode).json({ errorHandler: error.toString() });
+  return res.status(errorStatusCode).json({
+    errorHandler: { errorMsg: error.toString(), reason: errorReason }
+  });
 };
 
 module.exports = { getErrorMessage, errorHandler };

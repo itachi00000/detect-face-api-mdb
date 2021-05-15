@@ -1,8 +1,7 @@
-const mongoose = require('mongoose');
-
+// const mongoose = require('mongoose');
 // mongoose.Promise = global.Promise; // testing
 
-async function connectMDB() {
+async function connectMDB(mongoose) {
   // try-catch handling async and sync
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
