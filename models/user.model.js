@@ -18,14 +18,10 @@ const userSchema = new Schema(
       require: true,
       unique: true,
       match: [/.+@.+\..+/, 'Email must contain @'],
-      minlength: 3,
+      minlength: 1,
       maxlength: 32
     },
-    hashed_password: {
-      type: String,
-      require: true
-    },
-    salt: String, // for password?
+
     role: {
       type: Number,
       default: 0
@@ -33,6 +29,28 @@ const userSchema = new Schema(
     history: {
       type: Array,
       default: []
+    },
+    hashed_password: {
+      type: String,
+      require: true
+    },
+    salt: String, // for password? yes,
+    age: {
+      type: Number,
+      min: 1,
+      max: 300
+    },
+    pet: {
+      type: String,
+      minlength: 2,
+      maxlength: 32
+    },
+    username: {
+      type: String,
+      minlength: 1,
+      maxlength: 32,
+      unique: true,
+      trim: true
     }
   },
   { timestamps: true, versionKey: false }

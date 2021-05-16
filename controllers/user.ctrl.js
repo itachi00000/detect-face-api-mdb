@@ -1,6 +1,8 @@
 const { isValidObjectId } = require('mongoose');
+const _ = require('lodash');
 const jwt = require('jsonwebtoken'); // generate signed token
 const expressJwt = require('express-jwt'); // check authorization
+
 // based on cookie
 
 const User = require('../models/user.model');
@@ -28,6 +30,23 @@ const userLists = async (req, res, next) => {
     const users = await User.find({});
 
     return res.json(users);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const updateUser = async (req, res, next) => {
+  try {
+    const { formInput } = req.body;
+
+    const toUpdateUser = _.extend(req.profile, formInput);
+
+    const user = await toUpdateUser.save();
+
+    user.hashed_password = undefined;
+    user.salt = undefined;
+
+    return res.json({ user });
   } catch (error) {
     return next(error);
   }
@@ -122,7 +141,8 @@ const logout = (req, res) => {
 const userById = async (req, res, next, userId) => {
   try {
     if (!isValidObjectId(userId)) {
-      throw Error(`${userId} is not a valid id`);
+      // to no-url catcher
+      return next('router');
     }
 
     const user = await User.findById(userId).select('-hashed_password -salt');
@@ -142,15 +162,26 @@ const userById = async (req, res, next, userId) => {
 
 // checker of auth
 // mware, has next()
-const requireSignin = expressJwt({
+const isLoggedIn = expressJwt({
   secret: process.env.JWT_SECRET,
   algorithms: ['HS256'],
   requestProperty: 'auth' // req.session.auth at mongodb
 });
 
+// put where you see /:userById
+// to check if req.params (to req.profile) is equal to req.auth (from jwt)
 const isAuth = (req, res, next) => {
   try {
-    // const authorized =
+    const authorized =
+      req.profile && req.auth && req.profile._id.toString() === req.auth._id;
+
+    if (!authorized) {
+      const error = new Error('not Authorized, Access denied');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return next();
   } catch (error) {
     return next(error);
   }
@@ -168,7 +199,7 @@ const isAdmin = (req, res, next) => {
 module.exports = {
   getUser,
   userLists,
-
+  updateUser,
   // param
   userById,
   // auth
@@ -176,7 +207,7 @@ module.exports = {
   signin,
   logout,
   // mware
-  requireSignin,
+  isLoggedIn,
   isAuth,
   isAdmin
 };

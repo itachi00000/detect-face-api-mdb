@@ -55,7 +55,7 @@ const errorHandler = (error, req, res, next) => {
   // jwt-express's error-handling
   if (error.name === 'UnauthorizedError') {
     return res.status(401).json({
-      error: `${error.name} : ${error.message}`
+      errorMsg: `${error.name} : ${error.message}`
     });
   }
 
@@ -67,10 +67,10 @@ const errorHandler = (error, req, res, next) => {
   }
 
   // NotFound Error
-  if (errorStatusCode === 301) {
-    console.log('* * * * * -Redirects-');
-    return res.status(301).redirect('/not-found');
-  }
+  // if (errorStatusCode === 301) {
+  //   console.log('* * * * * -Redirects-');
+  //   return res.status(301).redirect('/not-found');
+  // }
 
   // clientError??
   if (req.xhr) {
@@ -79,9 +79,9 @@ const errorHandler = (error, req, res, next) => {
   }
 
   // general error
-  return res.status(errorStatusCode).json({
-    errorHandler: { errorMsg: error.toString(), reason: errorReason }
-  });
+  return res
+    .status(errorStatusCode)
+    .json({ errorMsg: error.toString(), reason: errorReason });
 };
 
 module.exports = { getErrorMessage, errorHandler };

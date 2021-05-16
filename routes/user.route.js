@@ -5,28 +5,28 @@ const {
   // user crud
   userLists,
   getUser,
+  updateUser,
   // auth
   register,
   signin,
   logout,
   userById,
-  requireSignin
+  isLoggedIn,
+  isAuth
 } = require('../controllers/user.ctrl');
 
 // GET
-router.get('/hi', requireSignin, userLists);
+router.get('/hi', isLoggedIn, userLists);
 
-router.get('/profile/:userId', requireSignin, getUser);
+router.get('/profile/:userId', isLoggedIn, isAuth, getUser);
 
-router.post('/profile/:userId', requireSignin, (req, res, next) => {
-  console.log('update user');
-});
+router.put('/profile/:userId', isLoggedIn, isAuth, updateUser);
 
-router.post('/imageurl', requireSignin, (req, res, next) => {
+router.post('/imageurl', isLoggedIn, (req, res, next) => {
   console.log('image url');
 });
 
-router.put('/image', requireSignin, (req, res, next) => {
+router.put('/image', isLoggedIn, (req, res, next) => {
   console.log('image');
 });
 
@@ -36,7 +36,7 @@ router.put('/image', requireSignin, (req, res, next) => {
 // AUTH
 router.post('/register', register);
 router.post('/signin', signin);
-router.get('/logout', requireSignin, logout);
+router.get('/logout', isLoggedIn, logout);
 
 // TODO?: is this the 'option'??
 router.param('userId', userById);
