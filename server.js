@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 const express = require('express');
 const mongoose = require('mongoose');
-const expSession = require('express-session');
+// const expSession = require('express-session');
 // const mongoSessionStore = require('connect-mongo');
 // const passport = require('passport');
 const morgan = require('morgan');
@@ -78,7 +78,7 @@ app.use('/', usersRoute);
 // url catch - below last routes
 app.use('*', (req, res, next) => {
   const error = new Error(`${req.ip} tried to access ${req.originalUrl}`);
-  error.statusCode = 301; //??
+  // error.statusCode = 301; //??
 
   return next(error);
 });
