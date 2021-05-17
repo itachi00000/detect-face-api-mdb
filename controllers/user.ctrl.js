@@ -1,8 +1,9 @@
 const { isValidObjectId } = require('mongoose');
+const _ = require('lodash');
 const jwt = require('jsonwebtoken'); // generate signed token
 const expressJwt = require('express-jwt'); // check authorization
-// based on cookie
 
+// based on cookie
 const User = require('../models/user.model');
 
 // GET
@@ -10,13 +11,14 @@ const getUser = (req, res, next) => {
   // expected to have requireSignin
 
   try {
-    const { params, auth, profile } = req;
+    const { profile } = req;
 
-    if (auth._id !== params.userId) {
-      throw Error(`cannot access, use:, ${auth._id}`);
-    }
+    // transform to plain js
+    const user = profile.toObject();
+    user.id = user._id;
+    user.entries = user.history.length;
 
-    return res.json(profile);
+    return res.json(user);
   } catch (error) {
     return next(error);
   }
@@ -28,6 +30,23 @@ const userLists = async (req, res, next) => {
     const users = await User.find({});
 
     return res.json(users);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const updateUser = async (req, res, next) => {
+  try {
+    const { formInput } = req.body;
+
+    const toUpdateUser = _.extend(req.profile, formInput);
+
+    const user = await toUpdateUser.save();
+
+    user.hashed_password = undefined;
+    user.salt = undefined;
+
+    return res.json({ user });
   } catch (error) {
     return next(error);
   }
@@ -66,15 +85,43 @@ const register = async (req, res, next) => {
   }
 };
 
+// if there is token, handler signin
+// else go to profile
+const checkToken = () => {};
+
 const signin = async (req, res, next) => {
   try {
+    const { authorization } = req.headers;
+
+    // have token
+    if (authorization) {
+      const decoded = jwt.verify(
+        authorization.replace('Bearer ', ''),
+        process.env.JWT_SECRET
+      );
+
+      // make return-user toObject()
+      // so you can change the _id
+      const user = (await User.findOne({ email: decoded.email })).toObject();
+
+      user.hashed_password = undefined;
+      user.salt = undefined;
+      user.id = user._id;
+      user.entries = user.history.length;
+
+      return res.json(user);
+    }
+    // if not token
+
     const { body } = req;
 
     if (!body.email || !body.password) {
       throw Error('no email or password');
     }
 
-    const user = await User.findOne({ email: body.email });
+    const user = await User.findOne({ email: body.email }).select(
+      'email hashed_password salt'
+    );
 
     if (!user) {
       throw Error('no user or password');
@@ -87,7 +134,7 @@ const signin = async (req, res, next) => {
 
     // setting req.session by mounting/mutating
     // if (!req.sessionID) {
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET);
     // req.session.jwt = token;
     // res.cookie('t', token);
 
@@ -104,7 +151,7 @@ const signin = async (req, res, next) => {
     user.hashed_password = undefined;
     user.salt = undefined;
 
-    return res.json({ token, user });
+    return res.json({ token, success: true, userId: user._id });
   } catch (error) {
     return next(error);
   }
@@ -122,7 +169,8 @@ const logout = (req, res) => {
 const userById = async (req, res, next, userId) => {
   try {
     if (!isValidObjectId(userId)) {
-      throw Error(`${userId} is not a valid id`);
+      // to no-url catcher
+      return next('router');
     }
 
     const user = await User.findById(userId).select('-hashed_password -salt');
@@ -142,15 +190,29 @@ const userById = async (req, res, next, userId) => {
 
 // checker of auth
 // mware, has next()
-const requireSignin = expressJwt({
+const isLoggedIn = expressJwt({
   secret: process.env.JWT_SECRET,
   algorithms: ['HS256'],
   requestProperty: 'auth' // req.session.auth at mongodb
 });
 
+// put where you see /:userById
+// to check if req.params (to req.profile) is equal to req.auth (from jwt)
 const isAuth = (req, res, next) => {
   try {
     // const authorized =
+    //   req.profile && req.auth && req.profile._id.toString() === req.auth._id;
+
+    const authorized =
+      req.profile && req.auth && req.profile.email === req.auth.email;
+
+    if (!authorized) {
+      const error = new Error('not Authorized, Access denied');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return next();
   } catch (error) {
     return next(error);
   }
@@ -168,7 +230,7 @@ const isAdmin = (req, res, next) => {
 module.exports = {
   getUser,
   userLists,
-
+  updateUser,
   // param
   userById,
   // auth
@@ -176,7 +238,7 @@ module.exports = {
   signin,
   logout,
   // mware
-  requireSignin,
+  isLoggedIn,
   isAuth,
   isAdmin
 };
