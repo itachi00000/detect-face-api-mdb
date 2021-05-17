@@ -12,13 +12,14 @@ const getUser = (req, res, next) => {
   // expected to have requireSignin
 
   try {
-    const { params, auth, profile } = req;
+    const { profile } = req;
 
-    if (auth._id !== params.userId) {
-      throw Error(`cannot access, use:, ${auth._id}`);
-    }
+    // transform to plain js
+    const user = profile.toObject();
+    user.id = user._id;
+    user.entries = user.history.length;
 
-    return res.json(profile);
+    return res.json(user);
   } catch (error) {
     return next(error);
   }
@@ -85,15 +86,43 @@ const register = async (req, res, next) => {
   }
 };
 
+// if there is token, handler signin
+// else go to profile
+const checkToken = () => {};
+
 const signin = async (req, res, next) => {
   try {
+    const { authorization } = req.headers;
+
+    // have token
+    if (authorization) {
+      const decoded = jwt.verify(
+        authorization.replace('Bearer ', ''),
+        process.env.JWT_SECRET
+      );
+
+      // make return-user toObject()
+      // so you can change the _id
+      const user = (await User.findOne({ email: decoded.email })).toObject();
+
+      user.hashed_password = undefined;
+      user.salt = undefined;
+      user.id = user._id;
+      user.entries = user.history.length;
+
+      return res.json(user);
+    }
+    // if not token
+
     const { body } = req;
 
     if (!body.email || !body.password) {
       throw Error('no email or password');
     }
 
-    const user = await User.findOne({ email: body.email });
+    const user = await User.findOne({ email: body.email }).select(
+      'email hashed_password salt'
+    );
 
     if (!user) {
       throw Error('no user or password');
@@ -106,7 +135,7 @@ const signin = async (req, res, next) => {
 
     // setting req.session by mounting/mutating
     // if (!req.sessionID) {
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET);
     // req.session.jwt = token;
     // res.cookie('t', token);
 
@@ -123,7 +152,7 @@ const signin = async (req, res, next) => {
     user.hashed_password = undefined;
     user.salt = undefined;
 
-    return res.json({ token, user });
+    return res.json({ token, success: true, userId: user._id });
   } catch (error) {
     return next(error);
   }
@@ -172,8 +201,11 @@ const isLoggedIn = expressJwt({
 // to check if req.params (to req.profile) is equal to req.auth (from jwt)
 const isAuth = (req, res, next) => {
   try {
+    // const authorized =
+    //   req.profile && req.auth && req.profile._id.toString() === req.auth._id;
+
     const authorized =
-      req.profile && req.auth && req.profile._id.toString() === req.auth._id;
+      req.profile && req.auth && req.profile.email === req.auth.email;
 
     if (!authorized) {
       const error = new Error('not Authorized, Access denied');

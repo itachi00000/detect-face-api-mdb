@@ -15,6 +15,8 @@ const {
   isAuth
 } = require('../controllers/user.ctrl');
 
+const { handleApiCall, handleImage } = require('../routes/image.route');
+
 // GET
 router.get('/hi', isLoggedIn, userLists);
 
@@ -22,13 +24,9 @@ router.get('/profile/:userId', isLoggedIn, isAuth, getUser);
 
 router.put('/profile/:userId', isLoggedIn, isAuth, updateUser);
 
-router.post('/imageurl', isLoggedIn, (req, res, next) => {
-  console.log('image url');
-});
+router.post('/imageurl', isLoggedIn, handleApiCall);
 
-router.put('/image', isLoggedIn, (req, res, next) => {
-  console.log('image');
-});
+router.put('/image', isLoggedIn, handleImage);
 
 // login w/ auth, session
 // TODO: how to auto login, session type
