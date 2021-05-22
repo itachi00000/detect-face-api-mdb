@@ -12,7 +12,7 @@ async function connectMDB(mongoose) {
     });
 
     const { name, host, port } = conn.connection;
-
+    console.log('node_env', process.env.NODE_ENV);
     console.log(
       `<< MongoDB-Connected: ${host}:${port}/${name} pid:${process.pid}`
     );

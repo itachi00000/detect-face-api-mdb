@@ -24,10 +24,12 @@ const getUser = (req, res, next) => {
   }
 };
 
+
+
 // GET
 const userLists = async (req, res, next) => {
   try {
-    const users = await User.find({});
+    const users = await User.find({}).select('-hashed_password -salt');
 
     return res.json(users);
   } catch (error) {

@@ -57,6 +57,14 @@ const userSchema = new Schema(
 );
 
 /**
+ * pre save
+ */
+userSchema.pre("save", function (next) {
+  this.username = this.name;
+  next();
+});
+
+/**
  * statics
  */
 
